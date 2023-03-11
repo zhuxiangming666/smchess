@@ -1,5 +1,7 @@
 import { checkerboard } from "../../config/variable";
 import { IDirection, IPosition } from "../type";
+import { PiecesManger } from "./pieces.ts";
+import { INIT_PIECE_LIST } from "./pieces.ts/basePiece";
 import { GunMountStartPos, SoldierStartPos,gridPos } from "./posconfig";
 
 const BOARD_LINE_COLOR = 'black'; // 棋盘线条的颜色
@@ -16,6 +18,7 @@ const SPECIAL_LINES_LONG = 7; // 横折线条的宽度
 
 type CONTEXT_TYPE =  keyof CanvasRenderingContext2D;
 class CanvasChess {
+  private canvasContainer: HTMLDivElement;
   private canvasElement: HTMLCanvasElement;
   private context: CanvasRenderingContext2D; // canvas 的上下文对象
   private boardGridWidth: number; // 棋盘中网格的高宽
@@ -25,8 +28,11 @@ class CanvasChess {
   private boardMaxX: number; // 棋盘中最大的X坐标
   private boardMinY: number; // 棋盘中最小的Y坐标
   private boardMaxY: number; // 棋盘中最大的Y坐标
-  constructor(canvasDom:HTMLCanvasElement){
+
+  private piecesList: PiecesManger | undefined;
+  constructor(canvasDom:HTMLCanvasElement,container: HTMLDivElement){
     this.canvasElement = canvasDom;
+    this.canvasContainer = container;
     this.context = canvasDom.getContext('2d') as CanvasRenderingContext2D;
     this.boardGridWidth = BOARD_HEIGHT/COLUMN_COUNT;
     this.boardPaddingX = (canvasDom.width - BOARD_WIDTH) / 2;
@@ -35,12 +41,41 @@ class CanvasChess {
     this.boardMaxX = canvasDom.width - this.boardPaddingX;
     this.boardMinY = this.boardPaddingY;
     this.boardMaxY = canvasDom.height - this.boardPaddingY;
+    this.piecesList = undefined;
+  }
+
+  render() {
+    this.context.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+
+    this.drawBoardLine();
+    this.drawPiecesList();
+  }
+
+  // 初始化棋子
+  initPieces() {
+    const { boardPaddingX,boardPaddingY,context: ctx} = this;
+    this.piecesList = new PiecesManger({
+      pieces: INIT_PIECE_LIST,
+      boardInfo: {
+        paddingX: boardPaddingX,
+        paddingY: boardPaddingY,
+        w: this.canvasElement.width,
+        h: this.canvasElement.height
+      }
+    })
+    this.piecesList.drawPieces();
+    this.canvasContainer.appendChild(this.piecesList.canvas);
+  }
+
+  drawPiecesList() {
+    if(!this.piecesList) return this.initPieces();
   }
 
   // 绘制棋盘的线条
   drawBoardLine(){
     const ctx = this.context;
     ctx.save();
+    ctx.globalCompositeOperation = 'exclusion';
     ctx.beginPath();
     ctx.strokeStyle = BOARD_LINE_COLOR;
     ctx.lineWidth = BOARD_LINE_WIDTH;
@@ -51,7 +86,7 @@ class CanvasChess {
       this.context.moveTo(this.boardMinX,rightPos);
       ctx.lineTo(this.boardMaxX,rightPos);
       ctx.closePath();
-      ctx.stroke(); 
+      ctx.stroke();
       count ++;
     }
     // 绘制纵线
@@ -61,7 +96,7 @@ class CanvasChess {
       ctx.moveTo(bottomPos,this.boardMinY);
       ctx.lineTo(bottomPos,this.boardMaxY);
       ctx.closePath();
-      ctx.stroke(); 
+      ctx.stroke();
       count ++;
     }
     ctx.stroke();
@@ -91,9 +126,9 @@ class CanvasChess {
   private drawHorizontalFoldLine(pos:IPosition){
     const shortLineLong = 5; //绘制的横折线的长度
     const shortLineWidth = 1; // 绘制的横折线的粗细
-    const shortLinePadding = 3; 
+    const shortLinePadding = 3;
     // 在两边的兵初始位置要只有一半的短线
-    
+
   };
   // 通过棋子的位置获取到坐标
   private getCoordByPosition(pos:IPosition){
@@ -139,9 +174,9 @@ class CanvasChess {
 
     // 开始绘制特殊的横折线条
     les.forEach(item => drawLineOneDirect(item))
-  
-  
-  } 
+
+
+  }
 
   private drawSpecialLinesGrid(){
     const gridPosition = gridPos.map(item =>{
@@ -155,29 +190,29 @@ class CanvasChess {
     let originPos = {X:0,Y:0};
 
     switch (direction) {
-      case IDirection.LEFT_DOWN: 
+      case IDirection.LEFT_DOWN:
         originPos = {X: pos.X - SPECIAL_LINES_PENDING, Y: pos.Y + SPECIAL_LINES_PENDING};
         returnArr = [
           originPos,
           {X:originPos.X - SPECIAL_LINES_LONG,Y: originPos.Y},
           {X:originPos.X,Y: originPos.Y + SPECIAL_LINES_LONG}
-        
+
       ];break;
-      case IDirection.LEFT_TOP: 
+      case IDirection.LEFT_TOP:
         originPos = {X: pos.X - SPECIAL_LINES_PENDING, Y: pos.Y - SPECIAL_LINES_PENDING};
         returnArr = [
           originPos,
           {X:originPos.X - SPECIAL_LINES_LONG,Y: originPos.Y},
           {X:originPos.X,Y: originPos.Y - SPECIAL_LINES_LONG}
         ];break;
-        case IDirection.RIGHT_DOWN: 
+        case IDirection.RIGHT_DOWN:
         originPos = {X: pos.X + SPECIAL_LINES_PENDING, Y: pos.Y + SPECIAL_LINES_PENDING};
         returnArr = [
           originPos,
           {X:originPos.X + SPECIAL_LINES_LONG,Y: originPos.Y},
           {X:originPos.X,Y: originPos.Y + SPECIAL_LINES_LONG}
         ];break;
-        case IDirection.RIGHT_TOP: 
+        case IDirection.RIGHT_TOP:
         originPos = {X: pos.X + SPECIAL_LINES_PENDING, Y: pos.Y - SPECIAL_LINES_PENDING};
         returnArr = [
           originPos,
@@ -188,14 +223,14 @@ class CanvasChess {
         break;
     }
       return returnArr;
-  } 
+  }
   /**
    * canvas 中绘制基本的图形
   */
   // canvas 绘制基本的类
   private drawLine(beginPos: IPosition,endPos: IPosition) {
     this.context.beginPath();
-    this.context.moveTo(beginPos.X,beginPos.Y);    
+    this.context.moveTo(beginPos.X,beginPos.Y);
     this.context.lineTo(endPos.X,endPos.Y);
     this.context.stroke();
     this.context.closePath();

@@ -20,7 +20,7 @@ export const GunMountStartPos = [
 ];
 
 export const gridPos = [
-  [  {X:3,Y:0},{X:5,Y:2}],
+  [ {X:3,Y:0},{X:5,Y:2}],
   [{X:5,Y:0},{X:3,Y:2}],
   [{X:3,Y:7},{X:5,Y:9}],
   [{X:5,Y:7},{X:3,Y:9}]
